@@ -145,9 +145,7 @@ class GloriousHeading extends HTMLElement {
 
         .heading {
           font-size: ${fontSize}vw;
-          color: ${fontColor};
           font-weight: 600;
-          text-shadow: 0 0 10px ${glowColor};
           letter-spacing: 0.02em;
           transition: transform 0.2s ease, text-shadow 0.2s ease;
           cursor: pointer;
@@ -157,6 +155,8 @@ class GloriousHeading extends HTMLElement {
           overflow-wrap: break-word;
           white-space: normal;
           line-height: 1.2;
+          color: ${fontColor}; /* Only applies to normal text */
+          text-shadow: 0 0 10px ${glowColor};
         }
 
         .heading:hover {
@@ -169,7 +169,7 @@ class GloriousHeading extends HTMLElement {
           animation: gradientAnimation 4s ease infinite;
           -webkit-background-clip: text;
           background-clip: text;
-          color: transparent;
+          color: transparent; /* Ensure gradient text is transparent to show background */
           display: inline;
         }
 
