@@ -5,12 +5,14 @@ class GloriousHeading extends HTMLElement {
     this.mousePosition = { x: 0, y: 0 };
     this.trailItems = [];
     this.colorIndex = 0;
-    this.baseColors = ['#6ee7b7', '#3b82f6', '#8b5cf6']; // Gradient colors
     this.headingHovered = false;
   }
 
   static get observedAttributes() {
-    return ['text', 'font-size', 'font-family', 'font-color', 'text-alignment', 'background-color'];
+    return [
+      'gradient-text', 'normal-text', 'font-size', 'font-family', 'font-color', 
+      'text-alignment', 'background-color', 'gradient-colors', 'gradient-type', 'glow-color'
+    ];
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
@@ -56,11 +58,12 @@ class GloriousHeading extends HTMLElement {
     trailItem.classList.add('trail-item');
     trailItem.style.left = `${x}px`;
     trailItem.style.top = `${y}px`;
-    trailItem.style.backgroundColor = this.baseColors[this.colorIndex];
+    const gradientColors = this.getAttribute('gradient-colors')?.split(',') || ['#6ee7b7', '#3b82f6', '#8b5cf6'];
+    trailItem.style.backgroundColor = gradientColors[this.colorIndex];
     trail.appendChild(trailItem);
     this.trailItems.push(trailItem);
 
-    this.colorIndex = (this.colorIndex + 1) % this.baseColors.length;
+    this.colorIndex = (this.colorIndex + 1) % gradientColors.length;
 
     setTimeout(() => {
       trailItem.style.opacity = '0';
@@ -90,16 +93,34 @@ class GloriousHeading extends HTMLElement {
   }
 
   render() {
-    const text = this.getAttribute('text') || 'Glorious Heading';
+    const gradientText = this.getAttribute('gradient-text') || 'Glorious';
+    const normalText = this.getAttribute('normal-text') || 'Heading';
     const fontSize = parseFloat(this.getAttribute('font-size')) || 4; // In vw
     const fontFamily = this.getAttribute('font-family') || 'Poppins';
-    const fontColor = this.getAttribute('font-color') || '#ffffff'; // White as base
+    const fontColor = this.getAttribute('font-color') || '#ffffff';
     const textAlignment = this.getAttribute('text-alignment') || 'center';
     const backgroundColor = this.getAttribute('background-color') || '#121212';
+    const gradientColors = this.getAttribute('gradient-colors') || 'rgba(110, 231, 183, 1),rgba(59, 130, 246, 1),rgba(139, 92, 246, 1)';
+    const gradientType = this.getAttribute('gradient-type') || 'linear';
+    const glowColor = this.getAttribute('glow-color') || 'rgba(255, 255, 255, 0.8)';
 
-    // Split text into first word and rest
-    const [firstWord, ...rest] = text.split(' ');
-    const restText = rest.join(' ');
+    // Determine gradient style based on type
+    let gradientStyle;
+    switch (gradientType) {
+      case 'inverted-linear':
+        gradientStyle = `linear-gradient(270deg, ${gradientColors})`;
+        break;
+      case 'conic':
+        gradientStyle = `conic-gradient(${gradientColors})`;
+        break;
+      case 'radial':
+        gradientStyle = `radial-gradient(circle, ${gradientColors})`;
+        break;
+      case 'linear':
+      default:
+        gradientStyle = `linear-gradient(90deg, ${gradientColors})`;
+        break;
+    }
 
     this.shadowRoot.innerHTML = `
       <style>
@@ -119,14 +140,14 @@ class GloriousHeading extends HTMLElement {
 
         .container {
           text-align: ${textAlignment};
-          max-width: 80vw; /* Limit width for wrapping */
+          max-width: 80vw;
         }
 
         .heading {
           font-size: ${fontSize}vw;
           color: ${fontColor};
           font-weight: 600;
-          text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+          text-shadow: 0 0 10px ${glowColor};
           letter-spacing: 0.02em;
           transition: transform 0.2s ease, text-shadow 0.2s ease;
           cursor: pointer;
@@ -139,11 +160,11 @@ class GloriousHeading extends HTMLElement {
         }
 
         .heading:hover {
-          text-shadow: 0 0 15px rgba(255, 255, 255, 0.9);
+          text-shadow: 0 0 15px ${glowColor};
         }
 
         .heading-gradient {
-          background-image: linear-gradient(90deg, #6ee7b7, #3b82f6, #8b5cf6);
+          background-image: ${gradientStyle};
           background-size: 200% 200%;
           animation: gradientAnimation 4s ease infinite;
           -webkit-background-clip: text;
@@ -180,7 +201,7 @@ class GloriousHeading extends HTMLElement {
       </style>
       <div class="container">
         <h1 class="heading">
-          <span class="heading-gradient">${firstWord}</span>${restText ? ' ' + restText : ''}
+          <span class="heading-gradient">${gradientText}</span>${normalText ? ' ' + normalText : ''}
         </h1>
       </div>
       <div id="trail"></div>
