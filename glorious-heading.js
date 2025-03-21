@@ -11,7 +11,8 @@ class GloriousHeading extends HTMLElement {
   static get observedAttributes() {
     return [
       'gradient-text', 'normal-text', 'font-size', 'font-family', 'font-color', 
-      'text-alignment', 'background-color', 'gradient-colors', 'gradient-type', 'glow-color'
+      'text-alignment', 'background-color', 'gradient-colors', 'gradient-type', 
+      'glow-color', 'heading-tag'
     ];
   }
 
@@ -103,6 +104,7 @@ class GloriousHeading extends HTMLElement {
     const gradientColors = this.getAttribute('gradient-colors') || 'rgba(110, 231, 183, 1),rgba(59, 130, 246, 1),rgba(139, 92, 246, 1)';
     const gradientType = this.getAttribute('gradient-type') || 'linear';
     const glowColor = this.getAttribute('glow-color') || 'rgba(255, 255, 255, 0.8)';
+    const headingTag = this.getAttribute('heading-tag') || 'h1'; // Default to h1
 
     // Determine gradient style based on type
     let gradientStyle;
@@ -155,7 +157,7 @@ class GloriousHeading extends HTMLElement {
           overflow-wrap: break-word;
           white-space: normal;
           line-height: 1.2;
-          color: ${fontColor}; /* Only applies to normal text */
+          color: ${fontColor};
           text-shadow: 0 0 10px ${glowColor};
         }
 
@@ -169,7 +171,7 @@ class GloriousHeading extends HTMLElement {
           animation: gradientAnimation 4s ease infinite;
           -webkit-background-clip: text;
           background-clip: text;
-          color: transparent; /* Ensure gradient text is transparent to show background */
+          color: transparent;
           display: inline;
         }
 
@@ -200,9 +202,9 @@ class GloriousHeading extends HTMLElement {
         }
       </style>
       <div class="container">
-        <h1 class="heading">
+        <${headingTag} class="heading">
           <span class="heading-gradient">${gradientText}</span>${normalText ? ' ' + normalText : ''}
-        </h1>
+        </${headingTag}>
       </div>
       <div id="trail"></div>
     `;
