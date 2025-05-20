@@ -6,6 +6,8 @@ class GloriousHeading extends HTMLElement {
     this.trailItems = [];
     this.colorIndex = 0;
     this.headingHovered = false;
+    this.isInViewport = false;
+    this.intersectionObserver = null;
   }
 
   static get observedAttributes() {
@@ -27,15 +29,82 @@ class GloriousHeading extends HTMLElement {
     this.handleResize = () => this.render();
     window.addEventListener('resize', this.handleResize);
     this.setupEventListeners();
-    this.animateTrail();
-    this.animateHeading();
+    this.setupIntersectionObserver();
   }
 
   disconnectedCallback() {
     window.removeEventListener('resize', this.handleResize);
     window.removeEventListener('mousemove', this.mouseMoveHandler);
-    cancelAnimationFrame(this.trailAnimationId);
-    cancelAnimationFrame(this.headingAnimationId);
+    
+    if (this.trailAnimationId) {
+      cancelAnimationFrame(this.trailAnimationId);
+    }
+    
+    if (this.headingAnimationId) {
+      cancelAnimationFrame(this.headingAnimationId);
+    }
+    
+    if (this.intersectionObserver) {
+      this.intersectionObserver.disconnect();
+    }
+  }
+
+  setupIntersectionObserver() {
+    // Create an Intersection Observer to detect when the heading enters the viewport
+    const options = {
+      root: null, // viewport is the root
+      rootMargin: '0px',
+      threshold: 0.1 // trigger when at least 10% of the element is visible
+    };
+
+    this.intersectionObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          // Element has entered the viewport
+          this.isInViewport = true;
+          this.startAnimations();
+          
+          // Add active class to enable CSS animations
+          const heading = this.shadowRoot.querySelector('.heading');
+          heading.classList.add('active');
+        } else {
+          // Element has left the viewport
+          this.isInViewport = false;
+          this.stopAnimations();
+          
+          // Remove active class to disable CSS animations
+          const heading = this.shadowRoot.querySelector('.heading');
+          heading.classList.remove('active');
+        }
+      });
+    }, options);
+
+    // Start observing the element once it's rendered
+    setTimeout(() => {
+      this.intersectionObserver.observe(this);
+    }, 100);
+  }
+
+  startAnimations() {
+    if (!this.trailAnimationId) {
+      this.animateTrail();
+    }
+    
+    if (!this.headingAnimationId) {
+      this.animateHeading();
+    }
+  }
+
+  stopAnimations() {
+    if (this.trailAnimationId) {
+      cancelAnimationFrame(this.trailAnimationId);
+      this.trailAnimationId = null;
+    }
+    
+    if (this.headingAnimationId) {
+      cancelAnimationFrame(this.headingAnimationId);
+      this.headingAnimationId = null;
+    }
   }
 
   setupEventListeners() {
@@ -44,17 +113,24 @@ class GloriousHeading extends HTMLElement {
     };
     window.addEventListener('mousemove', this.mouseMoveHandler);
 
-    const heading = this.shadowRoot.querySelector('.heading');
-    heading.addEventListener('mouseenter', () => {
-      this.headingHovered = true;
-    });
-    heading.addEventListener('mouseleave', () => {
-      this.headingHovered = false;
-    });
+    // We need to wait for the shadowDOM to be populated
+    setTimeout(() => {
+      const heading = this.shadowRoot.querySelector('.heading');
+      if (heading) {
+        heading.addEventListener('mouseenter', () => {
+          this.headingHovered = true;
+        });
+        heading.addEventListener('mouseleave', () => {
+          this.headingHovered = false;
+        });
+      }
+    }, 100);
   }
 
   createTrailItem(x, y) {
     const trail = this.shadowRoot.querySelector('#trail');
+    if (!trail) return;
+    
     const trailItem = document.createElement('div');
     trailItem.classList.add('trail-item');
     trailItem.style.left = `${x}px`;
@@ -77,13 +153,17 @@ class GloriousHeading extends HTMLElement {
   }
 
   animateTrail() {
-    this.createTrailItem(this.mousePosition.x, this.mousePosition.y);
+    if (this.isInViewport) {
+      this.createTrailItem(this.mousePosition.x, this.mousePosition.y);
+    }
     this.trailAnimationId = requestAnimationFrame(() => this.animateTrail());
   }
 
   animateHeading() {
     const heading = this.shadowRoot.querySelector('.heading');
-    if (this.headingHovered) {
+    if (!heading) return;
+    
+    if (this.isInViewport && this.headingHovered) {
       const xOffset = Math.random() * 2 - 1;
       const yOffset = Math.random() * 2 - 1;
       heading.style.transform = `translate(${xOffset}px, ${yOffset}px) scale(1.05)`;
@@ -159,6 +239,14 @@ class GloriousHeading extends HTMLElement {
           line-height: 1.2;
           color: ${fontColor};
           text-shadow: 0 0 10px ${glowColor};
+          opacity: 0;
+          transform: translateY(20px);
+          transition: opacity 0.8s ease, transform 0.8s ease, text-shadow 0.2s ease;
+        }
+
+        .heading.active {
+          opacity: 1;
+          transform: translateY(0);
         }
 
         .heading:hover {
@@ -168,11 +256,15 @@ class GloriousHeading extends HTMLElement {
         .heading-gradient {
           background-image: ${gradientStyle};
           background-size: 200% 200%;
-          animation: gradientAnimation 4s ease infinite;
+          background-position: 0% 50%;
           -webkit-background-clip: text;
           background-clip: text;
           color: transparent;
           display: inline;
+        }
+
+        .heading.active .heading-gradient {
+          animation: gradientAnimation 4s ease infinite;
         }
 
         @keyframes gradientAnimation {
